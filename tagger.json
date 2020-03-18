@@ -1,3 +1,1 @@
-[
-    {"fileName":"test","tags": ["hi","I","am","a","tag"]}
-]
+[{"fileName":"testFile","tags":["hi","this","is","fun"]},{"fileName":"testFile","tags":["hi","this","is","fun"]},{"fileName":"test","tags":["hi","I","am","a","tag"]}]
