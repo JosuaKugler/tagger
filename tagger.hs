@@ -10,7 +10,7 @@ import Data.List.Split
 import Data.List
 
 jsonFile :: FilePath
-jsonFile = "/home/josua/repos/tagger/tagger.json"
+jsonFile = "/home/josua/repos/tagger/.tagger.json"
 
 internalDirectory :: FilePath
 internalDirectory = "/home/josua/repos/tagger/.tagger_internal"
@@ -67,6 +67,19 @@ save fileargs = do
             let next = newfile : prev
             B.writeFile jsonFile (encode next)
 
+unsave :: [String] -> IO ()
+unsave fileargs = do
+    let fileName = head fileargs
+    renameFile (internalDirectory ++ "/" ++ fileName) fileName
+    d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
+    case d of 
+        Left err -> putStrLn err
+        Right content -> do 
+            let next = foldr (\file@(File {fileName = fname, tags = ftags}) acc -> if fname /= fileName then file:acc else acc) [] content
+            B.writeFile jsonFile (encode next)
+
+
+
 open :: [String] -> IO ()
 open fileargs = do
     d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
@@ -115,8 +128,9 @@ main = do
     args <- getArgs
     let action:actargs = args
     case action of
-        "save" -> save $ actargs
-        "open" -> open $ actargs
-        "newtag" -> newtag $ actargs
-        "addtag" -> addtag $ actargs
-        "rmtag" -> rmtag $ actargs
+        "save" -> save $ actargs --example: ./tagger save test2.txt text tagger test more tags
+        "unsave" -> unsave $ actargs --example: ./tagger unsave test2.txt
+        "open" -> open $ actargs --example: ./tagger open tagger test random
+        "newtag" -> newtag $ actargs --example ./tagger newtag test2.txt four completely new tags
+        "addtag" -> addtag $ actargs --example ./tagger addtag test2.txt three additional tags
+        "rmtag" -> rmtag $ actargs --example ./tagger rmtag test 2.txt remove these four tags
