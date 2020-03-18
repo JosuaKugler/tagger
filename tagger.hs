@@ -55,6 +55,7 @@ displayRanking ranking = let withNumberRanking = zip [0..] ranking
     in unlines $ map displayOneRanking withNumberRanking
     where displayOneRanking (number, entry) = (show number) ++ ".: " ++ (snd entry) ++ "   " ++ (show $ fst entry)
 
+save :: [String] -> IO ()
 save fileargs = do
     let fileName = head $ reverse $ splitOn "/" $ head fileargs --get pure filename without path
     d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
@@ -66,6 +67,7 @@ save fileargs = do
             let next = newfile : prev
             B.writeFile jsonFile (encode next)
 
+open :: [String] -> IO ()
 open fileargs = do
     d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
     case d of 
@@ -78,6 +80,36 @@ open fileargs = do
             let fileName = snd (ranking !! (read n))
             createSymbolicLink (internalDirectory ++ "/" ++ fileName) fileName
 
+newtag :: [String] -> IO ()
+newtag fileargs = do
+    d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
+    case d of
+        Left err -> putStrLn err
+        Right content -> do
+            let fileName:newtags = fileargs
+            let next = foldr (\file@(File {fileName = fname, tags = ftags}) acc -> if fname /= fileName then file:acc else (File {fileName = fileName, tags = newtags}):acc) [] content
+            B.writeFile jsonFile (encode next)
+
+addtag :: [String] -> IO ()
+addtag fileargs = do
+    d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
+    case d of
+        Left err -> putStrLn err
+        Right content -> do
+            let fileName:addtags = fileargs
+            let next = foldr (\file@(File {fileName = fname, tags = ftags}) acc -> if fname /= fileName then file:acc else (File {fileName = fileName, tags = concat [addtags,ftags]}):acc) [] content
+            B.writeFile jsonFile (encode next)
+
+rmtag :: [String] -> IO ()
+rmtag fileargs = do 
+    d <- (eitherDecode <$> getJSON) :: IO (Either String [File])
+    case d of
+        Left err -> putStrLn err
+        Right content -> do
+            let fileName:rmtags = fileargs
+            let next = foldr (\file@(File {fileName = fname, tags = ftags}) acc -> if fname /= fileName then file:acc else (File {fileName = fileName, tags = ftags \\ rmtags}):acc) [] content
+            B.writeFile jsonFile (encode next)
+
 main :: IO ()
 main = do
     args <- getArgs
@@ -85,3 +117,6 @@ main = do
     case action of
         "save" -> save $ actargs
         "open" -> open $ actargs
+        "newtag" -> newtag $ actargs
+        "addtag" -> addtag $ actargs
+        "rmtag" -> rmtag $ actargs
